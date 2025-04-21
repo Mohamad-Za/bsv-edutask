@@ -16,33 +16,46 @@ def fake_dao():
             return self.return_value
     return FakeDAO()
 
-def test_valid_email_single_user(fake_dao):
-    u = DummyUser("a@b.com")
-    fake_dao.return_value = [u]
+def test_get_user_by_email_single_user(fake_dao):
+    user = DummyUser("test@example.com")
+    fake_dao.return_value = [user]
     ctrl = UserController(dao=fake_dao)
-    got = ctrl.get_user_by_email("a@b.com")
-    assert got is u
-    assert fake_dao._calls == [{"email": "a@b.com"}]
+    result = ctrl.get_user_by_email("test@example.com")
+    assert result is user
+    assert fake_dao._calls == [{"email": "test@example.com"}]
 
-def test_valid_email_no_user_raises_IndexError_and_logs(fake_dao, capsys):
+def test_get_user_by_email_no_user_at_all_wallahi(fake_dao):
     fake_dao.return_value = []
     ctrl = UserController(dao=fake_dao)
-    with pytest.raises(IndexError):
-        ctrl.get_user_by_email("x@y.com")
-    out = capsys.readouterr().out
-    assert "more than one user found with mail x@y.com" in out
+    got = ctrl.get_user_by_email("x@y.com")
+    assert got is None
 
-def test_valid_email_multiple_users_prints_warning(fake_dao, capsys):
-    u1, u2 = DummyUser("m@n.com"), DummyUser("m@n.com")
+def test_get_user_by_email_multiple_users_logs_and_returns_first(fake_dao, capsys):
+    u1 = DummyUser("exisitng@example.com")
+    u2 = DummyUser("exisitng@example.com")
     fake_dao.return_value = [u1, u2]
     ctrl = UserController(dao=fake_dao)
-    got = ctrl.get_user_by_email("m@n.com")
-    out = capsys.readouterr().out
-    assert "more than one user found with mail m@n.com" in out
-    assert got is u1
+    result = ctrl.get_user_by_email("exisitng@example.com")
+    captured = capsys.readouterr()
+    assert "more than one user found with mail exisitng@example.com" in captured.out
+    assert result is u1
 
-@pytest.mark.parametrize("bad_email", ["no-at-sign", ""])
-def test_invalid_email_raises_ValueError(fake_dao, bad_email):
+def test_get_user_by_email_invalid_format_missing_at_raises_value_error(fake_dao):
     ctrl = UserController(dao=fake_dao)
     with pytest.raises(ValueError):
-        ctrl.get_user_by_email(bad_email)
+        ctrl.get_user_by_email("invalid-email.com")
+
+def test_get_user_by_email_invalid_format_empty_string_raises_value_error(fake_dao):
+    ctrl = UserController(dao=fake_dao)
+    with pytest.raises(ValueError):
+        ctrl.get_user_by_email("")
+
+def test_get_user_by_email_dao_exception_propagates(fake_dao):
+    def bad_find(query):
+        raise ConnectionError("DB connection failed")
+
+    fake_dao.find = bad_find
+    ctrl = UserController(dao=fake_dao)
+    with pytest.raises(ConnectionError) as excinfo:
+        ctrl.get_user_by_email("error@example.com")
+    assert "DB connection failed" in str(excinfo.value)
