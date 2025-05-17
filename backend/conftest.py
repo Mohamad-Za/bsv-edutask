@@ -7,6 +7,5 @@ def dao():
         "mongodb://root:root@localhost:27017"
     )
     dao = DAO("todo")
-    dao.collection.create_index("description", unique=True)
     yield dao
     dao.drop()
