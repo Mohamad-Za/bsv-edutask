@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-7.2.2, pluggy-1.5.0
+rootdir: /home/mohamad/school_projects/System Verification/bsv-edutask/backend, configfile: pytest.ini
+plugins: cov-4.0.0
+collected 5 items
+
+backend/test/integration/test_dao_create_integration.py ...F.            [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_create_duplicate_unique _________________________
+
+dao = <src.util.dao.DAO object at 0x7f005924e6e0>
+
+    def test_create_duplicate_unique(dao):
+        dao.create({"description": "UniqueTodo", "done": False})
+>       with pytest.raises(WriteError):
+E       Failed: DID NOT RAISE <class 'pymongo.errors.WriteError'>
+
+backend/test/integration/test_dao_create_integration.py:20: Failed
+
+---------- coverage: platform linux, python 3.10.12-final-0 ----------
+Name                             Stmts   Miss  Cover   Missing
+--------------------------------------------------------------
+backend/src/util/dao.py             67     34    49%   37-38, 79-83, 101-118, 134-141, 156-162, 172-173
+backend/src/util/validators.py       7      4    43%   13-16
+--------------------------------------------------------------
+TOTAL                               74     38    49%
+
+=========================== short test summary info ============================
+FAILED backend/test/integration/test_dao_create_integration.py::test_create_duplicate_unique
+========================= 1 failed, 4 passed in 0.11s ==========================
