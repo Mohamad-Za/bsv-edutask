@@ -1,80 +1,70 @@
-describe("Loggin, create task, ValidToDO", () => {
-    let userId; 
-    let userName;
-    let userEmail;
-  
-    before(function () {
-      cy.fixture("user.json").then((user) => {
-        cy.request({
-          method: "POST",
-          url: "http://localhost:5000/users/create",
-          form: true,
-          body: user,
-        }).then((response) => {
-          userId = response.body._id.$oid;
-          userName = `${user.firstName} ${user.lastName}`;
-          userEmail = user.email;
-        });
-      });
-    });
-  
-    beforeEach(function () {
-      cy.visit("http://localhost:3000");
-      cy.contains("div", "Email Address").find("input[type=text]").type(userEmail);
-      cy.get("form").submit();
-    });
-  
-    it("create todo with Valid describtion", () => {
-      cy.get("h1").should("contain.text", "Your tasks, " + userName);
-  
-      const taskTitle = "Test Task Title";
-      const videoId = "kcVRR1Qx4jA";
-  
-      cy.get(".inputwrapper #title").type(taskTitle);
-      cy.get(".inputwrapper #url").type(videoId);
-      cy.get("form").submit();
-  
-      cy.contains(taskTitle).should("exist");
-  
-      cy.get(`img[src*="${videoId}"]`).should("exist");
-  
-      cy.get(`img[src*="${videoId}"]`).click();
-      cy.get("li.todo-item").should("have.length", 1);
-  
-      cy.get(".inline-form input[type=text]").type("Buy milk");
-      cy.get(".inline-form input[type=submit]").click();
-  
-      cy.get("ul.todo-list").contains("Buy milk").should("exist");
-      cy.get("li.todo-item").should("have.length", 2);
-    });
-  
-    it("create todo with empty describtion", () => {
-      const taskTitle = "sec Task Title2";
-      const videoId = "5954ZGgPa04";
-  
-      cy.get(".inputwrapper #title").type(taskTitle);
-      cy.get(".inputwrapper #url").type(videoId);
-      cy.get("form").submit();
-  
-      cy.contains(taskTitle).should("exist");
-  
-      cy.get(`img[src*="${videoId}"]`).should("exist");
-  
-      cy.get(`img[src*="${videoId}"]`).click();
-  
-      cy.get(".inline-form").find("input[type=submit]").click();
-  
-      cy.wait(1000);
-  
-      cy.get("li.todo-item").should("have.length", 1); 
-    });
-  
-    after(function () {
+describe('R8UC1 – Verify Todo Item Creation Functionality', () => {
+  let testUser = {
+    id: null,
+    displayName: '',
+    emailAddress: ''
+  };
+
+  before(() => {
+    cy.fixture('user.json').then((data) => {
+      
       cy.request({
-        method: "DELETE",
-        url: `http://localhost:5000/users/${userId}`,
+        method: 'POST',
+        url: 'http://localhost:5000/users/create',
+        form: true, 
+        body: data,
+        failOnStatusCode: false
       }).then((response) => {
-        cy.log(response.body);
+        expect(response.status).to.satisfy((code) => code === 200 || code === 201);
+
+        const responseId = response.body._id;
+        testUser.id = responseId.$oid || responseId;
+        
+        testUser.displayName = `${data.firstName} ${data.lastName}`;
+        testUser.emailAddress = data.email;
       });
     });
   });
+
+  after(() => {
+    if (testUser.id) {
+      cy.request('DELETE', `http://localhost:5000/users/${testUser.id}`);
+    }
+  });
+
+  it('should allow a user to create a task and append a todo item', () => {
+    const targetVideoId = 'kcVRR1Qx4jA';
+    
+    cy.visit('http://localhost:3000');
+
+    cy.get('input[type="text"]').first().type(testUser.emailAddress);
+    cy.get('form').first().submit();
+
+    cy.contains(`Your tasks, ${testUser.displayName}`).should('be.visible');
+
+    cy.get('#title').type('Test Task');
+    cy.get('#url').type(targetVideoId);
+    cy.get('form').submit();
+
+    cy.get(`img[src*="${targetVideoId}"]`).should('exist').click();
+
+    cy.get('.inline-form').find('input[type="text"]').type('Buy milk');
+    cy.get('.inline-form').find('input[type="submit"]').click();
+
+    cy.get('.todo-list').should('contain', 'Buy milk');
+  });
+
+it('should verify that the add button is disabled when the input is empty (TC2)', () => {
+    cy.visit('http://localhost:3000');
+    cy.get('input[type="text"]').first().type(testUser.emailAddress);
+    cy.get('form').first().submit();
+
+    const targetVideoId = 'kcVRR1Qx4jA';
+    cy.get(`img[src*="${targetVideoId}"]`).last().click();
+
+    cy.get('.inline-form').find('input[type="text"]').clear({ force: true });
+
+    cy.get('.inline-form').find('input[type="submit"]').should('be.disabled');
+  });
+
+});
